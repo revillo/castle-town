@@ -8,17 +8,19 @@
 --
 
 local shash = { _version = "0.1.1" }
-shash.__index = shash
+--shash.__index = shash
 
 
 function shash.new(cellsize)
-  local self = setmetatable({}, shash)
+  
+  local this = {};
+
   cellsize = cellsize or 64
-  self.cellsize = cellsize
-  self.tablepool = {}
-  self.cells = {}
-  self.entities = {}
-  return self
+  this.cellsize = cellsize
+  this.tablepool = {}
+  this.cells = {}
+  this.entities = {}
+  return this;
 end
 
 
@@ -200,6 +202,17 @@ local function each_overlapping_entity(self, e, fn, ...)
   table.insert(self.tablepool, set)
 end
 
+function shash:overlapsAny(x, y, w, h)
+
+  local result = false;
+
+  shash.each(self, x, y, w, h, function()
+    result = true;
+  end);
+
+  return result;
+end
+
 function shash:each(x, y, w, h, fn, ...)
 
   if (type(x) == "table" or type(x) == "userdata") then
@@ -218,6 +231,14 @@ end
 function shash:contains(entity)
   
   return self.entities[entity.uuid];
+
+end
+
+function shash:all(fn)
+
+  for i, entity in pairs(self.entities) do
+    fn(entity[5]);
+  end
 
 end
 
