@@ -1,5 +1,28 @@
 local GameMap = {};
 
+v2 = {};
+
+v2.distance = function(x1, y1, x2, y2)
+
+    local dx = x2-x1;
+    local dy = y2-y1;
+
+    return math.sqrt(dx * dx + dy * dy);
+
+end
+
+v2.normalize = function(x, y)
+
+    local mag = math.sqrt(x * x + y * y);
+
+    if (mag > 0) then
+        x, y = x / mag, y / mag;
+    end
+
+    return x, y;
+
+end
+
 function GameMap.populateResources(mapState, config)
 
     local size = mapState.size;
@@ -14,7 +37,18 @@ function GameMap.populateResources(mapState, config)
             if (grid[x][y] == config.GROUND_TYPES.GRASS) then
             
                 local flip = math.random();
-                if (flip < 0.2) then
+
+                if(flip < 0.02) then
+
+                    GameMap.addAgent(mapState, {
+                        type = config.AGENT_TYPES.DEMON,
+                        x = x,
+                        y = y,
+                        w = 1,
+                        h = 1
+                    });
+
+                elseif (flip < 0.2) then
                     GameMap.addObject(mapState, {
                         type = config.OBJECT_TYPES.TREE,
                         x = x,
@@ -48,6 +82,8 @@ function GameMap.eachObjectAt(mapState, x, y, callback)
     x,y = math.floor(x) + 0.5, math.floor(y) + 0.5;
 
     Shash.each(shash, x, y, 0.01, 0.01, callback);
+    Shash.each(mapState.agentShash, x, y, 0.01, 0.01, callback);
+
 
 end
 
@@ -116,6 +152,12 @@ function GameMap.genUUID(mapState)
     
 end
 
+function GameMap.populateAgents(state, config)
+    
+
+
+end
+
 function GameMap.newState(config)
     local state = {};
     state.grid = {};
@@ -129,10 +171,9 @@ function GameMap.newState(config)
 
     state.objectShash = Shash.new(4);
 
-
     GameMap.generateMap(state, config);
     GameMap.populateResources(state, config);
-
+    GameMap.populateAgents(state, config);
 
     return state;
 end
@@ -146,9 +187,48 @@ function GameMap.addAgent(mapState, agent)
     Shash.add(mapState.agentShash, agent, agent.x + 0.05, agent.y + 0.05, 0.9, 0.9);
 end
 
+function GameMap.removeAgent(mapState, agent)
+    Shash.removeByUUID(mapState.agentShash, agent.uuid);
+end
+
+function GameMap.damageAgent(mapState, agent, amount)
+    agent.health = (agent.health or 1.0) - amount;
+    if (agent.health <= 0.0) then
+
+        if (agent.house) then
+            local house = Shash.getForUUID(mapState.objectShash, agent.house);
+            
+            if (house) then
+                house.numOccupants = house.numOccupants - 1;
+            end
+        end
+
+        GameMap.removeAgent(mapState, agent);
+    end
+end
+
+function GameMap.getAgent(mapState, agentUUID)
+    return Shash.getForUUID(mapState.agentShash, agentUUID);
+end
+
 function GameMap.moveAgent(mapState, agent)
+
+    if (agent.x < 0) then
+        agent.x = mapState.size.x + agent.x;
+    elseif (agent.x > mapState.size.x) then
+        agent.x = agent.x - mapState.size.x;
+    end
+    
+    if (agent.y < 0) then
+        agent.y = mapState.size.y + agent.y;
+    elseif (agent.y > mapState.size.y) then
+        agent.y = agent.y - mapState.size.y;
+    end
+
     Shash.update(mapState.agentShash, agent, agent.x + 0.05, agent.y + 0.05, 0.9, 0.9);
 end
+
+
 
 function GameMap.addObject(mapState, object)
     object.uuid = GameMap.genUUID(mapState);
@@ -184,10 +264,7 @@ function GameMap.canPlace(mapState, building, x, y)
 end
 
 function GameMap.isRoad(object)
-
-    print("obj type is", object.type);
     return object.type == GameConfig.BUILDING_TYPES.ROAD or object.type == GameConfig.BUILDING_TYPES.BRIDGE;
-
 end
 
 local function invertPath(node)
@@ -342,6 +419,28 @@ function GameMap.iterateNearbyAgents(mapState, center, distance, callback)
         callback(object, object.x, object.y);
 
     end);
+end
+
+
+function GameMap.findNearestAgent(mapState, center, distance, searchFn)
+
+    local nearestObject = nil;
+    local nearestDistance = 100000;
+
+    GameMap.iterateNearbyAgents(mapState, center, distance, function(obj, x, y)
+        
+        if (searchFn(obj)) then
+            local thisDist = v2.distance(x, y, center.x, center.y);
+
+            if (thisDist < nearestDistance) then
+                nearestObject = obj;
+                nearestDistance = thisDist;
+            end
+        end
+
+    end);
+
+    return nearestObject;
 end
 
 

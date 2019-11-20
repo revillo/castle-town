@@ -61,22 +61,41 @@ function LocalService:handleMapTap(tapEvent)
     
     local mapState = self.gameState.map;
     local playerState = self.gameState.player;
+    local bestObj = nil;
 
     GameMap.eachObjectAt(mapState, tapEvent.x, tapEvent.y, function(obj)
-    
+
+        if (obj.type == GameConfig.AGENT_TYPES.VILLAGER) then
+            return;
+        end
+
+        if (obj.type == GameConfig.AGENT_TYPES.DEMON) then
+            bestObj = obj;
+        else
+            if (not bestObj or bestObj.type ~= GameConfig.AGENT_TYPES.DEMON) then
+                bestObj = obj;
+            end
+        end
+
+    end);
+
+    if (bestObj) then
+        local obj = bestObj;
         obj.health = obj.health or 1.0;
         obj.health = obj.health - 1.0;
         print(obj.health);
 
         if (obj.health <= 0.0) then
             GameMap.removeObject(mapState, obj);
+            GameMap.removeAgent(mapState, obj);
 
             local drops = GameConfig.RESOURCE_DROPS[obj.type];
 
-            GamePlayer.addResources(playerState, drops);
+            if (drops) then
+                GamePlayer.addResources(playerState, drops);
+            end
         end
-
-    end);
+    end
 end
 
 

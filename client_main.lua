@@ -95,17 +95,25 @@ local OBJECT_IMG = {
     [GameConfig.BUILDING_TYPES.ROAD] = loadImg("road"),
     [GameConfig.BUILDING_TYPES.BRIDGE] = loadImg("bridge"),
     [GameConfig.BUILDING_TYPES.HOUSE] = loadImg("house"),
+    [GameConfig.BUILDING_TYPES.TOWER] = loadImg("tower"),
     [GameConfig.BUILDING_TYPES.FENCE] = loadImg("fence"),
     [GameConfig.BUILDING_TYPES.CROPS] = loadImg("crops"),
 
-    [GameConfig.AGENT_TYPES.VILLAGER] = loadImg("villager")
+    [GameConfig.AGENT_TYPES.VILLAGER] = loadImg("villager"),
+    [GameConfig.AGENT_TYPES.DEMON] = loadImg("demon"),
+    [GameConfig.AGENT_TYPES.ARROW] = loadImg("arrow")
+}
+
+local VILLAGER_IMG = {
+    KID = loadImg("villager_kid")
 }
 
 local SPROUT_IMG = {
     [1] = loadImg("sprout_1"),
     [2] = loadImg("sprout_2"),
     [3] = loadImg("sprout_3"),
-    [4] = loadImg("sprout_4")
+    [4] = loadImg("sprout_4"),
+    [5] = loadImg("fruit_tree_2")
 }
 
 local DRAW_SPECIAL = {
@@ -116,9 +124,19 @@ local DRAW_SPECIAL = {
     end,
     ]]
 
+    [GameConfig.AGENT_TYPES.VILLAGER] = function(villager)
+        if (villager.age and villager.age < 60) then
+            GameInterface.drawSprite(VILLAGER_IMG.KID, villager.x, villager.y);
+        else
+            GameInterface.drawSprite(OBJECT_IMG[villager.type], villager.x, villager.y);
+        end
+    end,
+
     [GameConfig.OBJECT_TYPES.FRUIT_TREE] = function(tree)
-        if(tree.food <= 0) then
+        if(tree.food <= 1.0) then
             GameInterface.drawSprite(SPROUT_IMG[4], tree.x, tree.y);
+        elseif (tree.food <= 3) then
+            GameInterface.drawSprite(SPROUT_IMG[5], tree.x, tree.y);
         else
             GameInterface.drawSprite(OBJECT_IMG[tree.type], tree.x, tree.y);
         end
@@ -139,14 +157,16 @@ function GameInterface.drawMapTile(tile, wx, wy)
     LG.draw(TILE_IMG[tile], px, py, 0, size / 16, size / 16);
 end
 
-function GameInterface.drawSprite(img, wx, wy)
+function GameInterface.drawSprite(img, wx, wy, angle)
+
     LG.setColor(1,1,1,1);
 
     local size = GameInterface.tilePixelSize;
+    angle = angle or 0;
 
     local px, py = GameInterface.mapToPixel(wx, wy);
 
-    LG.draw(img, px, py, 0, size / 16, size / 16);
+    LG.draw(img, px, py, angle, size / 16, size / 16);
 
 end
 
@@ -193,7 +213,13 @@ function GameInterface.drawMapObject(object, wx, wy)
         if (DRAW_SPECIAL[object.type]) then
             DRAW_SPECIAL[object.type](object);  
         else
-            GameInterface.drawSprite(OBJECT_IMG[object.type], wx, wy);
+
+            local angle = 0;
+            if (object.dx and object.dy) then
+                angle = math.atan2(object.dy, object.dx) + (3.14159) / 2;
+            end
+
+            GameInterface.drawSprite(OBJECT_IMG[object.type], wx, wy, angle);
         end
        --
         --        LG.draw(OBJECT_IMG[object.type], px, py, 0, size / 16, size / 16);
@@ -222,17 +248,17 @@ function GameInterface.drawMapObject(object, wx, wy)
     LG.setColor(1, 0, 1, 1);
 
     if (object.hunger) then
-        LG.print(object.hunger, px + 10, py + 10);
+        LG.print(math.floor(object.hunger), px + 10, py + 10);
         LG.setColor(1, 1, 1, 1);
-        LG.print(object.hunger, px + 8, py + 8);
+        LG.print(math.floor(object.hunger), px + 8, py + 8);
     end
 
     LG.setColor(1, 0, 1, 1);
 
     if (object.tired) then
-        LG.print(object.tired, px + 20, py + 20);
+        LG.print(math.floor(object.tired), px + 20, py + 20);
         LG.setColor(1, 1, 1, 1);
-        LG.print(object.tired, px + 18, py + 18);
+        LG.print(math.floor(object.tired), px + 18, py + 18);
     end
 end
 
@@ -334,16 +360,19 @@ function GameInterface.requestBuildMode(buildingId, buildingName)
 
 end
 
+function GameInterface.drawRecipe(x, y, recipe)
+
+end
+
 function GameInterface.drawBuildMenu()
 
     GameInterface.buildButtons = List.new();
 
     local w, h = LG.getDimensions();
     local buttonSize = GameInterface.tilePixelSize * 1;
-
     
     local buttonSizeX = buttonSize * 2;
-    local ox = w - buttonSizeX * 1.1;
+    local ox = 10;
 
 
     if (GameInterface.buildMenuState == BUILD_MENU_STATE.OPEN) then
@@ -355,9 +384,14 @@ function GameInterface.drawBuildMenu()
         local oy = buttonSize * 2.5;
 
         for buildingName, buildingId in pairs(GameConfig.BUILDING_TYPES) do
+
             GameInterface.drawButton(ox, h - oy, buttonSizeX, buttonSize, buildingName, function()
                 GameInterface.requestBuildMode(buildingId, buildingName);
             end, OBJECT_IMG[buildingId]);
+
+            local recipe = GameConfig.BUILDING_RECIPES[buildingId];
+
+            GameInterface.drawRecipe(ox, h - oy, recipe);
 
             oy = oy + buttonSize * 1.5;
         end

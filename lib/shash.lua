@@ -234,6 +234,13 @@ function shash:contains(entity)
 
 end
 
+function shash:getForUUID(uuid)
+  local e = shash.contains(self, {uuid = uuid});
+  if (e) then
+    return e[5];
+  end
+end
+
 function shash:all(fn)
 
   for i, entity in pairs(self.entities) do
