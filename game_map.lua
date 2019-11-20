@@ -131,10 +131,15 @@ end
 function GameMap.generateMap(mapState, config)
     local size = mapState.size;
     mapState.grid = {}; 
+    mapState.lightGrid = {};
+
     local grid = mapState.grid;
-    
+    local lightGrid = mapState.lightGrid;
+
     for x = 1, size.x do
-        grid[x] = {}
+        grid[x] = {};
+        lightGrid[x] = {};
+
         for y = 1, size.y do
             grid[x][y] = config.GROUND_TYPES.GRASS;
         end
@@ -228,15 +233,79 @@ function GameMap.moveAgent(mapState, agent)
     Shash.update(mapState.agentShash, agent, agent.x + 0.05, agent.y + 0.05, 0.9, 0.9);
 end
 
+function GameMap.setGround(mapState, type, x, y)
+    mapState.grid[x][y] = type;
+end
 
+function GameMap.getGrid(mapState, x, y)
+    if (mapState.grid[x]) then
+        return mapState.grid[x][y];
+    end
+end
+
+function GameMap.clearArea(mapState, groundType, x, y, w, h)
+
+    for ix = x, (x+w) do
+    for iy = y, (y+h) do        
+            GameMap.setGround(mapState, groundType, ix, iy);
+    end
+    end
+
+    local toRemove = {};
+
+    Shash.each(mapState.objectShash, x, y, w, h, function(obj)
+        toRemove[obj.uuid] = obj;
+    end);
+
+    for uuid, obj in pairs(toRemove) do
+        GameMap.removeObject(mapState, obj);
+    end
+
+    toRemove = {};
+
+    Shash.each(mapState.agentShash, x, y, w, h, function(obj)
+        toRemove[obj.uuid] = obj;
+    end);
+
+    for uuid, obj in pairs(toRemove) do
+        GameMap.removeObject(mapState, obj);
+    end
+
+end
+
+function GameMap.addLight(mapState, x, y, amount)
+    mapState.lightGrid[x][y] = (mapState.lightGrid[x][y] or 0) + amount;
+end
+
+function GameMap.addLum(mapState, x, y, lum)
+
+    x,y = math.floor(x), math.floor(y);
+    
+    for ix = x - lum, x + lum do
+        for iy = y - lum, y + lum do
+
+            local dist = v2.distance(x, y, ix, iy) / (lum * 1.5);
+            local amount = math.max(0.0, 1.0 - dist);
+            GameMap.addLight(mapState, ix, iy, amount);
+        end
+    end
+end
 
 function GameMap.addObject(mapState, object)
     object.uuid = GameMap.genUUID(mapState);
 
-    object.w = object.w or 1;
-    object.h = object.h or 1;
+    local bProps = GameConfig.BUILDING_PROPERTIES[object.type] or {w = 1, h = 1};
+
+    object.w = object.w or bProps.w;
+    object.h = object.h or bProps.h;
 
     Shash.add(mapState.objectShash, object, object.x + 0.05, object.y + 0.05, object.w - 0.1, object.h - 0.1);
+
+
+    if (bProps.lum) then
+        local x, y = getObjCenter(object);
+        GameMap.addLum(mapState, x, y, bProps.lum);
+    end
 end
 
 function GameMap.canPlace(mapState, building, x, y)
@@ -353,6 +422,7 @@ end
 function GameMap.iterateNearbyGrid(mapState, center, distance, callback)
 
     local grid = mapState.grid;
+    local lightGrid = mapState.lightGrid;
 
     local fx = math.floor(center.x);
     local fy = math.floor(center.y);
@@ -365,7 +435,8 @@ function GameMap.iterateNearbyGrid(mapState, center, distance, callback)
 
             
             if (grid[ox] and grid[ox][oy]) then
-                callback(grid[ox][oy], ox, oy);
+                local light = lightGrid[ox][oy] or 0;
+                callback(grid[ox][oy], ox, oy, light);
             end
 
         end
@@ -442,7 +513,6 @@ function GameMap.findNearestAgent(mapState, center, distance, searchFn)
 
     return nearestObject;
 end
-
 
 
 function GameMap.update(mapState, dt)

@@ -29,7 +29,7 @@ GameConfig.AGENT_TYPES = {
 
 --Useful functions
 
-local function getObjCenter(obj)
+function getObjCenter(obj)
     return obj.x + (obj.w or 1) * 0.5, obj.y + (obj.h or 1) * 0.5;
 end
 
@@ -171,13 +171,15 @@ GameConfig.BUILDING_PROPERTIES = {
 
     [GameConfig.BUILDING_TYPES.HOUSE] = {
         w = 2,
-        h = 2
+        h = 2,
+        lum = 10
     },
 
     
     [GameConfig.BUILDING_TYPES.TOWER] = {
         w = 2,
-        h = 3
+        h = 3,
+        lum = 15
     }
 }
 

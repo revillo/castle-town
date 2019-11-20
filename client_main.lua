@@ -147,6 +147,17 @@ local DRAW_SPECIAL = {
     end
 }
 
+function GameInterface.drawDarkness(tile, wx, wy, light)
+
+    local alpha = math.max(0.0, 1.0 - light);
+    LG.setColor(0,0,0, alpha);
+    local px, py = GameInterface.mapToPixel(wx, wy);
+    local size = GameInterface.tilePixelSize;
+
+    LG.rectangle("fill", px, py, size, size);
+    LG.setColor(1,1,1,1);
+
+end
 
 function GameInterface.drawMapTile(tile, wx, wy)
 
@@ -287,8 +298,10 @@ function GameInterface.drawMap(playerState, mapState)
     GameMap.iterateNearbyGrid(mapState, playerState.camera.center, playerState.camera.zoom, GameInterface.drawMapTile)
     GameMap.iterateNearbyObjects(mapState, playerState.camera.center, playerState.camera.zoom, GameInterface.drawMapObject);
     GameMap.iterateNearbyAgents(mapState, playerState.camera.center, playerState.camera.zoom, GameInterface.drawMapObject);
+    GameMap.iterateNearbyGrid(mapState, playerState.camera.center, playerState.camera.zoom, GameInterface.drawDarkness)
 
 end
+
 
 function GameInterface.drawResources(playerState)
 
@@ -376,14 +389,14 @@ function GameInterface.drawRecipe(x, y, recipe)
     --LG.setColor(0.7, 0.5, 0.2, 1.0);
     --LG.rectangle("fill", x, y, GameInterface.tilePixelSize * 2, GameInterface.tilePixelSize)
 
-    for resName, cnt in pairs(GameConfig.RESOURCE_TYPES) do
+    for resName, resId in pairs(GameConfig.RESOURCE_TYPES) do
 
-        local resId = GameConfig.RESOURCE_TYPES[resName];
         if (recipe[resId]) then
-            text = text..resName..":"..cnt.."\n";
+            text = text..resName..":"..recipe[resId].."\n";
         end
 
     end
+
 
     LG.setColor(1,1,1,0.4);
     LG.print(text, x+1, y+1);
@@ -418,7 +431,7 @@ function GameInterface.drawBuildMenu()
             end, OBJECT_IMG[buildingId]);
 
             local recipe = GameConfig.BUILDING_RECIPES[buildingId];
-
+            
             GameInterface.drawRecipe(ox + buttonSizeX + 2, h - oy, recipe);
 
             oy = oy + buttonSize * 1.5;

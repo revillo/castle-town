@@ -28,7 +28,7 @@ function GamePlayer.initInventory(playerState, config)
     local playerRes = GamePlayer.getResources(playerState);
 
     for name, resourceId in pairs(config.RESOURCE_TYPES) do
-        playerRes[resourceId] = 100;
+        playerRes[resourceId] = 0;
     end
 
 end
