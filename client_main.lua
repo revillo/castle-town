@@ -116,6 +116,10 @@ local SPROUT_IMG = {
     [5] = loadImg("fruit_tree_2")
 }
 
+local UI_IMG = {
+    X = loadImg("x");
+}
+
 local DRAW_SPECIAL = {
 
     --[[
@@ -320,16 +324,17 @@ function GameInterface.drawButton(x, y, w, h, text, onClick, img)
     LG.setColor(1,1,1,1);
 
     if (img) then
-        LG.draw(img, x + w / 2, y + 2, 0, h/16, h/16);
+        local imgScale = math.max(img:getWidth(), img:getHeight());
+        LG.draw(img, x + 40, y + 2, 0, h/imgScale, h/imgScale);
     end
 
-    LG.setColor(0,0,0,0.5);
-    LG.rectangle("fill", x, y, (#text) * 10, 20);
+    --LG.setColor(0,0,0,0.5);
+    --LG.rectangle("fill", x, y, (#text) * 10, 20);
 
-    LG.setColor(0.0, 0.0, 0.0, 1.0);
+    LG.setColor(1.0, 1.0, 1.0, 0.4);
     LG.print(text, x + 2, y + 2);
    -- LG.setColor(0.5, 0.3, 0.0, 1.0);
-    LG.setColor(1.0, 1.0, 1.0, 1.0);
+    LG.setColor(0.0, 0.0, 0.0, 1.0);
     LG.print(text, x + 1, y + 1);
     LG.setScissor();
 
@@ -362,6 +367,25 @@ end
 
 function GameInterface.drawRecipe(x, y, recipe)
 
+    local text = "";
+
+    --LG.setColor(0.7, 0.5, 0.2, 1.0);
+    --LG.rectangle("fill", x, y, GameInterface.tilePixelSize * 2, GameInterface.tilePixelSize)
+
+    for resName, cnt in pairs(GameConfig.RESOURCE_TYPES) do
+
+        local resId = GameConfig.RESOURCE_TYPES[resName];
+        if (recipe[resId]) then
+            text = text..resName..":"..cnt.."\n";
+        end
+
+    end
+
+    LG.setColor(1,1,1,0.4);
+    LG.print(text, x+1, y+1);
+    LG.setColor(0,0,0,1);
+    LG.print(text, x, y);
+
 end
 
 function GameInterface.drawBuildMenu()
@@ -377,21 +401,21 @@ function GameInterface.drawBuildMenu()
 
     if (GameInterface.buildMenuState == BUILD_MENU_STATE.OPEN) then
 
-        GameInterface.drawButton(ox, h - buttonSize, buttonSizeX, buttonSize, "CLOSE", function()
+        GameInterface.drawButton(ox, h - buttonSize, buttonSizeX, buttonSize, "CANCEL", function()
             GameInterface.buildMenuState = BUILD_MENU_STATE.CLOSED;
-        end);
+        end, UI_IMG.X);
         
         local oy = buttonSize * 2.5;
 
         for buildingName, buildingId in pairs(GameConfig.BUILDING_TYPES) do
 
-            GameInterface.drawButton(ox, h - oy, buttonSizeX, buttonSize, buildingName, function()
+            GameInterface.drawButton(ox, h - oy, buttonSizeX * 2, buttonSize, buildingName, function()
                 GameInterface.requestBuildMode(buildingId, buildingName);
             end, OBJECT_IMG[buildingId]);
 
             local recipe = GameConfig.BUILDING_RECIPES[buildingId];
 
-            GameInterface.drawRecipe(ox, h - oy, recipe);
+            GameInterface.drawRecipe(ox + buttonSizeX + 2, h - oy, recipe);
 
             oy = oy + buttonSize * 1.5;
         end
@@ -402,9 +426,9 @@ function GameInterface.drawBuildMenu()
         end);
     else -- BUILDING
 
-        GameInterface.drawButton(ox, h - buttonSize, buttonSizeX, buttonSize, "Cancel "..GameInterface.buildName, function()
+        GameInterface.drawButton(ox, h - buttonSize, buttonSizeX * 2, buttonSize, "CANCEL "..GameInterface.buildName, function()
             GameInterface.buildMenuState = BUILD_MENU_STATE.OPEN;
-        end);
+        end, UI_IMG.X);
 
         local mx, my = love.mouse.getPosition();
         local wx, wy = GameInterface.pixelToMap(mx, my);
