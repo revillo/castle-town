@@ -249,6 +249,8 @@ function GameInterface.drawMapObject(object, wx, wy)
     end
 
 ]]
+
+--[[
     LG.setColor(1, 0, 1, 1);
 
     if (object.hunger) then
@@ -264,6 +266,8 @@ function GameInterface.drawMapObject(object, wx, wy)
         LG.setColor(1, 1, 1, 1);
         LG.print(math.floor(object.tired), px + 18, py + 18);
     end
+]]
+
 end
 
 
@@ -602,8 +606,7 @@ end
 function MainMenu.draw()
 
     LG.setColor(1,1,1,1);
-    LG.print("Single Player", 50, 50);
-    LG.print("Multiplayer", 50, 150);
+    LG.print("Click To Start.", 50, 50);
 
 end
 
