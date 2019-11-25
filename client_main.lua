@@ -8,7 +8,8 @@ if CASTLE_PREFETCH then
        "game_player.lua",
        "game_service.lua",
        "game_stage.lua",
-       "game_map.lua"
+       "game_map.lua",
+       "img/atlas.png"
     })
 end
 
