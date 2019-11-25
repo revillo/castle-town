@@ -1,9 +1,21 @@
 -- file://C:\castle\castle-town\client_main.lua
 
+if CASTLE_PREFETCH then
+    CASTLE_PREFETCH({
+       "lib/list.lua",
+       "lib/shash.lua",
+       "game_config.lua",
+       "game_player.lua",
+       "game_service.lua",
+       "game_stage.lua",
+       "game_map.lua"
+    })
+end
+
 local GameStage = require("game_stage");
 Stage = GameStage.GameStage;
 Director = GameStage.GameDirector;
-GFX3D = require("gfx3D");
+--GFX3D = require("gfx3D");
 List = require("lib/list");
 Shash = require("lib/shash");
 GameConfig = require("game_config");
@@ -11,8 +23,8 @@ GameMap = require("game_map");
 GamePlayer = require("game_player");
 GameService = require("game_service");
 
-local cpml = GFX3D.cpml;
-local vec3 = cpml.vec3;
+--local cpml = GFX3D.cpml;
+--local vec3 = cpml.vec3;
 
 local LG = love.graphics;
 
@@ -58,7 +70,7 @@ end
 
 function GameInterface.resizeCanvas()
     local w, h = LG.getDimensions();
-    GameInterface.canvas = GFX3D.createCanvas3D(w,h);
+    --GameInterface.canvas = GFX3D.createCanvas3D(w,h);
 
     GameInterface.tilePixelSize = 40;
     GameInterface.tilePixelOffset = {
@@ -74,51 +86,116 @@ local TILE_COLORS = {
     [GameConfig.GROUND_TYPES.DIRT] = {0.6, 0.3, 0.0, 1.0}
 };
 
-local loadImg = function(name)
-    local img = LG.newImage("img/"..name..".png");
+local allImages = {};
+
+local imgAtlas = love.image.newImageData("img/atlas.png");
+local atlasX = 0;
+
+local loadImg = function(name, x, y, w, h)
+    
+    --local img = LG.newImage("img/"..name..".png");
+    local imgData;
+    local ix = atlasX;
+    local iy = 0;
+
+    w = w or 16;
+    h = h or 16;
+
+    if (name == "house") then
+        imgData = love.image.newImageData(32, 32);
+        ix = 0;
+        iy = 16;
+    elseif (name == "tower") then
+        imgData = love.image.newImageData(32, 48)
+        ix = 32;
+        iy = 16;
+    else
+        imgData = love.image.newImageData(16, 16);
+        atlasX = atlasX + 16;
+    end
+
+
+    imgData:paste(imgAtlas, 0, 0, x, y, imgData:getWidth(), imgData:getHeight());
+    local img = LG.newImage(imgData);
     img:setFilter("nearest", "nearest");
+    
+    --allImages[name] = love.image.newImageData("img/"..name..".png");
+    
     return img;
 end
 
 local TILE_IMG = {
-    [GameConfig.GROUND_TYPES.GRASS] = loadImg("grass"),
-    [GameConfig.GROUND_TYPES.SAND] = loadImg("sand"),
-    [GameConfig.GROUND_TYPES.DIRT] = loadImg("dirt"),
-    [GameConfig.GROUND_TYPES.WATER] = loadImg("water")
+    [GameConfig.GROUND_TYPES.GRASS] = loadImg("grass", 112, 0),
+    [GameConfig.GROUND_TYPES.SAND] = loadImg("sand", 176, 0),
+    [GameConfig.GROUND_TYPES.DIRT] = loadImg("dirt", 96, 0),
+    [GameConfig.GROUND_TYPES.WATER] = loadImg("water", 304, 0)
 }
 
 local OBJECT_IMG = {
-    [GameConfig.OBJECT_TYPES.TREE] = loadImg('tree'),
-    [GameConfig.OBJECT_TYPES.ROCK] = loadImg('rock'),
-    [GameConfig.OBJECT_TYPES.FRUIT_TREE] = loadImg('fruit_tree'),
+    [GameConfig.OBJECT_TYPES.TREE] = loadImg('tree', 256, 0),
+    [GameConfig.OBJECT_TYPES.ROCK] = loadImg('rock', 32, 0),
+    [GameConfig.OBJECT_TYPES.FRUIT_TREE] = loadImg('fruit_tree', 0, 0),
 
-    [GameConfig.BUILDING_TYPES.ROAD] = loadImg("road"),
-    [GameConfig.BUILDING_TYPES.BRIDGE] = loadImg("bridge"),
-    [GameConfig.BUILDING_TYPES.HOUSE] = loadImg("house"),
-    [GameConfig.BUILDING_TYPES.TOWER] = loadImg("tower"),
-    [GameConfig.BUILDING_TYPES.FENCE] = loadImg("fence"),
-    [GameConfig.BUILDING_TYPES.CROPS] = loadImg("crops"),
+    [GameConfig.BUILDING_TYPES.ROAD] = loadImg("road", 320, 0),
+    [GameConfig.BUILDING_TYPES.BRIDGE] = loadImg("bridge", 288, 0),
+    [GameConfig.BUILDING_TYPES.HOUSE] = loadImg("house", 32, 16),
+    [GameConfig.BUILDING_TYPES.TOWER] = loadImg("tower", 0, 16),
+    [GameConfig.BUILDING_TYPES.FENCE] = loadImg("fence", 208, 0),
+    [GameConfig.BUILDING_TYPES.CROPS] = loadImg("crops", 16, 0),
 
-    [GameConfig.AGENT_TYPES.VILLAGER] = loadImg("villager"),
-    [GameConfig.AGENT_TYPES.DEMON] = loadImg("demon"),
-    [GameConfig.AGENT_TYPES.ARROW] = loadImg("arrow")
+    [GameConfig.AGENT_TYPES.VILLAGER] = loadImg("villager", 144, 0),
+    [GameConfig.AGENT_TYPES.DEMON] = loadImg("demon", 128, 0),
+    [GameConfig.AGENT_TYPES.ARROW] = loadImg("arrow", 160, 0)
 }
 
 local VILLAGER_IMG = {
-    KID = loadImg("villager_kid")
+    KID = loadImg("villager_kid", 80, 0)
 }
 
 local SPROUT_IMG = {
-    [1] = loadImg("sprout_1"),
-    [2] = loadImg("sprout_2"),
-    [3] = loadImg("sprout_3"),
-    [4] = loadImg("sprout_4"),
-    [5] = loadImg("fruit_tree_2")
+    [1] = loadImg("sprout_1", 48, 0),
+    [2] = loadImg("sprout_2", 272, 0),
+    [3] = loadImg("sprout_3", 240, 0),
+    [4] = loadImg("sprout_4", 192, 0),
+    [5] = loadImg("fruit_tree_2", 64, 0)
 }
 
 local UI_IMG = {
-    X = loadImg("x");
+    X = loadImg("x", 224, 0);
 }
+
+--[[
+local function makeImgAtlas()
+    local x = 0;
+    local x2 = 0;
+    local y = 0;
+    local tw = 512;
+    local outImage = love.image.newImageData(tw, 64);
+
+    for name, image in pairs(allImages) do
+        local w = image:getWidth();
+
+
+        if (w == 16) then
+            
+            print(name, x, y);
+            outImage:paste(image, x, y);
+            x = x + 16;
+        else
+            
+            print(name, x2, 16);
+            outImage:paste(image, x2, 16);
+            x2 = x2 + 32;
+        end
+    end
+
+
+    outImage:encode("png", "atlas.png")
+end
+
+makeImgAtlas();
+]]
+
 
 local DRAW_SPECIAL = {
 
@@ -551,6 +628,9 @@ function GameInterface.keypressed(key)
 
 end
 
+
+
+local pressTime = -1;
 function GameInterface.mousepressed(x, y, button, isTouch, presses)
 
     local finished = false;
@@ -582,21 +662,21 @@ function GameInterface.mousepressed(x, y, button, isTouch, presses)
         return;
     end
 
-    if (presses == 1) then
-        GameInterface.mouseState = MOUSE_STATE.DRAGGING;
 
-        local wx, wy = GameInterface.pixelToMap(x, y);
-        print("tap ", wx, wy);
+    local now = love.timer.getTime();
 
-    elseif (presses > 1) then
+    if (now - pressTime < 0.3) then
         GameInterface.mouseState = MOUSE_STATE.TAPPING;
         GameInterface.tapEvent = {
             x = x,
             y = y,
             p = presses
         };
+    else
+        GameInterface.mouseState = MOUSE_STATE.DRAGGING;
     end
 
+    pressTime = now;
 end
 
 function GameInterface.draw()
@@ -636,6 +716,7 @@ function MainMenu.mousepressed()
     MainMenu.launchSinglePlayer();
 
 end
+
 
 
 Director.init(love);

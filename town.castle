@@ -1,4 +1,6 @@
 main: client_main.lua
-title: Unitled Village Builder
+title: Luminion
 owner: revillo
-description: Coming Soon..
+description: Expand your town to illuminate the world and survive the demons that lurk in darkness
+coverImage: cover.png
+draft: true

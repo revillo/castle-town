@@ -38,7 +38,7 @@ function GameMap.populateResources(mapState, config)
             
                 local flip = math.random();
 
-                if(flip < 0.02) then
+                if(flip < 0.01) then
 
                     GameMap.addAgent(mapState, {
                         type = config.AGENT_TYPES.DEMON,
@@ -132,6 +132,8 @@ function GameMap.generateMap(mapState, config)
     local size = mapState.size;
     mapState.grid = {}; 
     mapState.lightGrid = {};
+    mapState.objectsByType = {};
+    mapState.agentsByType = {};
 
     local grid = mapState.grid;
     local lightGrid = mapState.lightGrid;
@@ -184,16 +186,30 @@ function GameMap.newState(config)
 end
 
 function GameMap.removeObject(mapState, object)
-    Shash.removeByUUID(mapState.objectShash, object.uuid);
+
+    if (Shash.contains(mapState.objectShash, object)) then
+
+        Shash.removeByUUID(mapState.objectShash, object.uuid);
+        mapState.objectsByType[object.type][object.uuid] = nil;
+
+    end
 end
 
 function GameMap.addAgent(mapState, agent)
     agent.uuid = GameMap.genUUID(mapState);
+
+    mapState.agentsByType[agent.type] = mapState.agentsByType[agent.type] or {};
+    mapState.agentsByType[agent.type][agent.uuid] = agent;
+
+
     Shash.add(mapState.agentShash, agent, agent.x + 0.05, agent.y + 0.05, 0.9, 0.9);
 end
 
 function GameMap.removeAgent(mapState, agent)
-    Shash.removeByUUID(mapState.agentShash, agent.uuid);
+    if (Shash.contains(mapState.agentShash, agent)) then
+       Shash.removeByUUID(mapState.agentShash, agent.uuid);
+        mapState.agentsByType[agent.type][agent.uuid] = nil;
+    end
 end
 
 function GameMap.damageAgent(mapState, agent, amount)
@@ -293,6 +309,8 @@ end
 
 function GameMap.addObject(mapState, object)
     object.uuid = GameMap.genUUID(mapState);
+    mapState.objectsByType[object.type] = mapState.objectsByType[object.type] or {};
+    mapState.objectsByType[object.type][object.uuid] = object;
 
     local bProps = GameConfig.BUILDING_PROPERTIES[object.type] or {w = 1, h = 1};
 
@@ -525,24 +543,52 @@ function GameMap.update(mapState, dt)
 
     if (mapState.timeToTick <= 0.0) then
 
+        --[[
         Shash.all(objectShash, function(object)
             if (tickFns[object.type]) then
                 tickFns[object.type](object, 1.0, mapState);
             end
         end);
+        ]]
+
+        for objectType, group in pairs(mapState.objectsByType) do
+            local tickFn = tickFns[objectType];
+            if (tickFn) then
+                for uuid, object in pairs(group) do
+                    tickFn(object, 1.0, mapState);
+                end
+            end
+        end
 
         mapState.timeToTick = nil;
     end
 
-    mapState.timeToTickAgent = (mapState.timeToTickAgent or 0.1) - dt;
+    mapState.timeToTickAgent = (mapState.timeToTickAgent or 0.05) - dt;
+
 
     if (mapState.timeToTickAgent <= 0.0) then
 
+        --[[
         Shash.all(agentShash, function(object)
             if (tickFns[object.type]) then
                 tickFns[object.type](object, 0.1, mapState);
             end
         end);
+        ]]
+
+        mapState.tickMask = ((mapState.tickMask or 0) + 1) % 3;
+
+        for agentType, group in pairs(mapState.agentsByType) do
+            local tickFn = tickFns[agentType];
+            if (tickFn) then
+                for uuid, agent in pairs(group) do
+                    if (uuid % 3 == mapState.tickMask) then
+                        tickFn(agent, 0.05*3, mapState);
+                    end
+                end
+            end
+        end
+
 
         mapState.timeToTickAgent = nil;
     end

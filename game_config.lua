@@ -174,12 +174,11 @@ GameConfig.BUILDING_PROPERTIES = {
         h = 2,
         lum = 10
     },
-
     
     [GameConfig.BUILDING_TYPES.TOWER] = {
         w = 2,
         h = 3,
-        lum = 15
+        lum = 10
     }
 }
 
@@ -337,6 +336,7 @@ GameConfig.OBJECT_TICK = {
                         y = obj.y,
                         w = 1,
                         h = 1,
+                        age = 0,
                         type = GameConfig.AGENT_TYPES.VILLAGER,
                         house = house.uuid
                     });
@@ -387,6 +387,7 @@ GameConfig.OBJECT_TICK = {
             if (objIsHome(obj)) then
                 villager.tired = 0;
                 nearHome = true;
+                villager.fear = 0;
                 --print('isHome', villager.tired);
             end
 
@@ -403,7 +404,7 @@ GameConfig.OBJECT_TICK = {
                 end
             end
         else
-            if (villager.tired > 15) then
+            if (villager.tired > 15 or villager.fear > 0) then
                 --print("search road for home");
                 villager.path = GameMap.searchRoadPath(mapState, villager.x, villager.y, goalFnHome, 30);
             elseif (villager.hunger > 3) then
@@ -468,7 +469,7 @@ GameConfig.OBJECT_TICK = {
 
         GameMap.moveAgent(mapState, self);
 
-        self.retargetTime = (self.retargetTime or 0) + dt;
+        self.retargetTime = (self.retargetTime or math.random() * 4) + dt;
 
         if (self.retargetTime > 5) then
 
@@ -479,6 +480,7 @@ GameConfig.OBJECT_TICK = {
             if (villager) then
                 if (overlap(villager, self) > 0.2)  then
                     GameMap.damageAgent(mapState, villager, dt * 0.1);
+                    villager.fear = (villager.fear or 0) + dt;
                 else
                     self.dir = getDirToward(self, villager);
                 end

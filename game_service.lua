@@ -95,7 +95,6 @@ function LocalService:handleMapTap(tapEvent)
         local obj = bestObj;
         obj.health = obj.health or 1.0;
         obj.health = obj.health - 0.25;
-        print(obj.health);
 
         if (obj.health <= 0.0) then
             GameMap.removeObject(mapState, obj);
